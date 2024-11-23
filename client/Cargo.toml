@@ -1,0 +1,12 @@
+[package]
+name = "client"
+version = "0.1.0"
+authors = ["connorcarpenter <connorcarpenter@gmail.com>"]
+workspace = ".."
+edition = "2021"
+publish = false
+
+[features]
+
+[dependencies]
+clap = { version = "4.4" }

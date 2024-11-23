@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+# all crates should be listed here
+members = [
+    "client",
+    "service",
+]
+default-members = []
+
+[profile.release]
+opt-level = 's'
+lto = true
+
+[profile.dev]
+opt-level = 1
+debug-assertions = false
+
+[profile.dev.package."*"]
+opt-level = 1

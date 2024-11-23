@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     "client",
     "service",
+    "shared"
 ]
 default-members = []
 

@@ -9,4 +9,5 @@ publish = false
 [dependencies]
 shared = { path = "../shared" }
 
-clap = { version = "4.4" }
+clap = { version = "=4.4", features = ["derive"] }
+bincode = { version = "1.3" }

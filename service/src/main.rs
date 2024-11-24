@@ -2,6 +2,7 @@ use std::{sync::{Arc, Mutex}, collections::{HashMap, HashSet}};
 
 use bincode;
 use scraper::{Html, Selector};
+use url::Url;
 use log::{info, error, warn};
 use tokio::{sync::mpsc, io::AsyncReadExt, net::TcpListener};
 
@@ -105,6 +106,9 @@ async fn crawl_website(url: String, state: SharedState) -> Result<(), Box<dyn st
     let mut visited = HashSet::new(); // Track visited URLs to prevent re-crawling
     let mut to_visit = vec![url.clone()]; // URLs to be visited, starting with the root URL
 
+    // Parse the base URL to construct relative URLs later
+    let base_url = Url::parse(&url)?;
+
     while let Some(current_url) = to_visit.pop() {
         if visited.contains(&current_url) {
             continue; // Skip URLs that have already been visited
@@ -121,10 +125,18 @@ async fn crawl_website(url: String, state: SharedState) -> Result<(), Box<dyn st
         let mut children = Vec::new();
         for element in document.select(&selector) {
             if let Some(link) = element.value().attr("href") {
-                let link = link.to_string();
-                if is_same_domain(&url, &link) {
-                    children.push(link.clone()); // Add link to children if it's in the same domain
-                    to_visit.push(link); // Add link to visit queue
+                // Resolve the link to an absolute URL
+                match base_url.join(link) {
+                    Ok(resolved_url) => {
+                        if is_same_domain(&url, resolved_url.as_str()) {
+                            let link_str = resolved_url.to_string();
+                            children.push(link_str.clone()); // Add link to children if it's in the same domain
+                            to_visit.push(link_str); // Add link to visit queue
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to resolve URL {}: {:?}", link, e);
+                    }
                 }
             }
         }

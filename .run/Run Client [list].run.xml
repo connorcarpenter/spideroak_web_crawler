@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Run Client" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="run -- start www.necrobones.com" />
+  <configuration default="false" name="Run Client [list]" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <option name="command" value="run -- list" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$/client" />
     <envs />
     <option name="emulateTerminal" value="false" />

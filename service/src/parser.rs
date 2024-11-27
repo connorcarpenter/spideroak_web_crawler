@@ -101,7 +101,6 @@ impl<'a> Iterator for AnchorHrefIterator<'a> {
                         if c.is_whitespace() {
                             // skip whitespace
                         } else if c == '=' {
-
                             self.is_in_value = true;
                             self.current_value.clear();
                             self.quote_char = None;
@@ -157,12 +156,7 @@ mod tests {
         let index = 0;
         let max_index = 1;
         let hrefs: Vec<String> = find_anchors(html, index, max_index).collect();
-        assert_eq!(
-            hrefs,
-            vec![
-                "e",
-            ]
-        );
+        assert_eq!(hrefs, vec!["e",]);
     }
 
     #[test]
@@ -211,12 +205,18 @@ mod tests {
         let index = 0;
         let max_index = 2;
         let hrefs_worker_0: Vec<String> = find_anchors(html, index, max_index).collect();
-        assert_eq!(hrefs_worker_0, vec!["https://example1.com", "https://example3.com"]);
+        assert_eq!(
+            hrefs_worker_0,
+            vec!["https://example1.com", "https://example3.com"]
+        );
 
         // Worker 1
         let index = 1;
         let hrefs_worker_1: Vec<String> = find_anchors(html, index, max_index).collect();
-        assert_eq!(hrefs_worker_1, vec!["https://example2.com", "https://example4.com"]);
+        assert_eq!(
+            hrefs_worker_1,
+            vec!["https://example2.com", "https://example4.com"]
+        );
     }
 
     #[test]
@@ -228,10 +228,7 @@ mod tests {
         let index = 0;
         let max_index = 1;
         let hrefs: Vec<String> = find_anchors(html, index, max_index).collect();
-        assert_eq!(
-            hrefs,
-            vec!["https://example.com", "https://example.org"]
-        );
+        assert_eq!(hrefs, vec!["https://example.com", "https://example.org"]);
     }
 
     #[test]
@@ -271,10 +268,7 @@ mod tests {
         let index = 0;
         let max_index = 1;
         let hrefs: Vec<String> = find_anchors(html, index, max_index).collect();
-        assert_eq!(
-            hrefs,
-            vec!["https://example.com", "https://example.org"]
-        );
+        assert_eq!(hrefs, vec!["https://example.com", "https://example.org"]);
     }
 
     #[test]
@@ -303,10 +297,7 @@ mod tests {
         let index = 0;
         let max_index = 1;
         let hrefs: Vec<String> = find_anchors(html, index, max_index).collect();
-        assert_eq!(
-            hrefs,
-            vec!["https://пример.рф", "https://example.com/路径"]
-        );
+        assert_eq!(hrefs, vec!["https://пример.рф", "https://example.com/路径"]);
     }
 
     #[test]
@@ -336,10 +327,7 @@ mod tests {
         let index = 0;
         let max_index = 1;
         let hrefs: Vec<String> = find_anchors(html, index, max_index).collect();
-        assert_eq!(
-            hrefs,
-            vec!["https://example.com", "https://example.org"]
-        );
+        assert_eq!(hrefs, vec!["https://example.com", "https://example.org"]);
     }
 
     #[test]

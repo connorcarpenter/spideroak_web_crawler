@@ -1,19 +1,30 @@
-mod crawler;
-mod url_worker;
-mod parser;
-mod error;
 mod base_url;
+mod crawler;
+mod error;
+mod parser;
+mod url_worker;
 
 use std::net::SocketAddr;
 
 use anyhow::Result;
 use bincode;
-use log::{info};
-use tokio::{net::TcpStream, sync::{mpsc::{Receiver, Sender}, mpsc}, io::AsyncReadExt, net::TcpListener};
+use log::info;
+use tokio::{
+    io::AsyncReadExt,
+    net::TcpListener,
+    net::TcpStream,
+    sync::{
+        mpsc,
+        mpsc::{Receiver, Sender},
+    },
+};
 
 use shared::Command;
 
-use crate::{error::{print_error_and_backtrace, CrawlerError}, crawler::Crawler};
+use crate::{
+    crawler::Crawler,
+    error::{print_error_and_backtrace, CrawlerError},
+};
 
 #[tokio::main]
 async fn main() {
@@ -65,7 +76,11 @@ async fn request_accept(listener: &TcpListener) -> Result<(TcpStream, SocketAddr
     Ok((socket, addr))
 }
 
-async fn request_read(mut socket: TcpStream, addr: SocketAddr, sender_clone: Sender<Command>) -> Result<()> {
+async fn request_read(
+    mut socket: TcpStream,
+    addr: SocketAddr,
+    sender_clone: Sender<Command>,
+) -> Result<()> {
     let mut buffer = [0; 1024];
     let bytes_number = socket.read(&mut buffer).await?;
     info!("Received TCP message from: {:?}", addr);

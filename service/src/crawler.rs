@@ -1,4 +1,7 @@
-use std::{collections::{HashMap, HashSet}, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use anyhow::Result;
 use log::{info, warn};
@@ -7,7 +10,11 @@ use url::Url;
 
 use shared::Command;
 
-use crate::{base_url::BaseUrl, url_worker::UrlWorker, error::{CrawlerError, print_error}};
+use crate::{
+    base_url::BaseUrl,
+    error::{print_error, CrawlerError},
+    url_worker::UrlWorker,
+};
 
 #[derive(Clone)]
 pub struct Crawler {
@@ -118,7 +125,6 @@ impl Crawler {
     }
 
     async fn handle_command_start(&self, url_str: &str) -> Result<()> {
-
         let url = Url::parse(url_str)?;
 
         self.base_url_start_crawling(&url).await;
@@ -130,13 +136,12 @@ impl Crawler {
     }
 
     pub(crate) async fn start_job(&self, prev_url_opt: Option<&Url>, url: &Url) -> Result<()> {
-
         let url = strip_url_to_domain_and_path(url.clone());
 
         if !self.base_url_is_crawling(&url).await {
             let crawler_error = CrawlerError::BaseUrlHasStoppedCrawling(
                 url.path().to_string(),
-                strip_url_to_domain(url.clone()).to_string()
+                strip_url_to_domain(url.clone()).to_string(),
             );
             print_error(crawler_error.clone().into());
             return Ok(());
@@ -155,7 +160,6 @@ impl Crawler {
     }
 
     async fn handle_command_stop(&self, url_str: &str) -> Result<()> {
-
         let url = Url::parse(url_str)?;
         let url = strip_url_to_domain(url);
 
@@ -167,8 +171,6 @@ impl Crawler {
     }
 
     async fn handle_command_list(&self) -> Result<()> {
-
-
         let mut url_set = HashSet::new();
 
         // list through all BaseUrls
@@ -200,7 +202,7 @@ fn strip_url_to_domain_and_path(mut url: Url) -> Url {
     // get rid of trailing slash
     if url.path().ends_with('/') {
         let mut path = url.path().to_owned();
-        path.pop();  // Remove the trailing slash
+        path.pop(); // Remove the trailing slash
         url.set_path(&path);
     }
     url
@@ -209,7 +211,7 @@ fn strip_url_to_domain_and_path(mut url: Url) -> Url {
 fn print_children(
     url_parents: &HashMap<Url, HashSet<Url>>,
     indentation: &mut String,
-    children: &HashSet<Url>
+    children: &HashSet<Url>,
 ) {
     let mut childed_urls = Vec::new();
     let mut childless_urls = Vec::new();

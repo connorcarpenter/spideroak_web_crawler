@@ -23,7 +23,8 @@ pub enum CrawlerError {
 impl CrawlerError {
     pub fn should_display_error(&self) -> bool {
         match self {
-            CrawlerError::LinkUrlDoesNotMatchBaseUrl(_, _) | CrawlerError::BaseUrlHasStoppedCrawling(_, _) => false,
+            CrawlerError::LinkUrlDoesNotMatchBaseUrl(_, _)
+            | CrawlerError::BaseUrlHasStoppedCrawling(_, _) => false,
             _ => true,
         }
     }

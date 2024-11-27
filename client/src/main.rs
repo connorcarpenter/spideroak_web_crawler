@@ -1,11 +1,14 @@
-use std::{net::TcpStream, io::Write};
+use std::{io::Write, net::TcpStream};
 
 use clap::{Parser, Subcommand};
 
 use shared::Command;
 
 #[derive(Parser)]
-#[command(version = "1.0", about = "CLI to interact with the Web Crawler Service")]
+#[command(
+    version = "1.0",
+    about = "CLI to interact with the Web Crawler Service"
+)]
 struct Cli {
     #[command(subcommand)]
     command: CliCommand,

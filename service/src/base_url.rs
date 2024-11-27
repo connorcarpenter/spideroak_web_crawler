@@ -1,13 +1,10 @@
-
 pub(crate) struct BaseUrl {
     crawling: bool,
 }
 
 impl BaseUrl {
     pub(crate) fn new() -> Self {
-        Self {
-            crawling: false,
-        }
+        Self { crawling: false }
     }
 
     pub(crate) fn start_crawling(&mut self) {

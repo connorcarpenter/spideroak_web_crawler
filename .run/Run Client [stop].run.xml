@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run Client [stop]" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="run -- stop http://www.necrobones.com" />
+    <option name="command" value="run -- stop http://www.imdb.com" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$/client" />
     <envs />
     <option name="emulateTerminal" value="false" />

@@ -1,6 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run Client [start]" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
-    <option name="command" value="run -- start https://www.imdb.com" />
+    <option name="buildProfileId" value="dev" />
+    <option name="command" value="run -- start http://www.imdb.com" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$/client" />
     <envs />
     <option name="emulateTerminal" value="false" />

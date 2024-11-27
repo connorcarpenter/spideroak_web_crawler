@@ -1,162 +1,101 @@
-use std::{sync::{Arc, Mutex}, collections::{HashMap, HashSet}};
+mod crawler;
+mod url_worker;
+mod parser;
+mod error;
 
+use std::net::SocketAddr;
+
+use anyhow::Result;
 use bincode;
-use scraper::{Html, Selector};
-use url::Url;
-use log::{info, error, warn};
-use tokio::{sync::mpsc, io::AsyncReadExt, net::TcpListener};
+use log::{info};
+use tokio::{net::TcpStream, sync::{mpsc::{Receiver, Sender}, mpsc}, io::AsyncReadExt, net::TcpListener};
 
 use shared::Command;
 
-#[derive(Debug, Clone)]
-struct CrawlJob {
-    url: String,
-    in_progress: bool,
-    children: Vec<String>,
-}
-
-// Shared State Type
-type SharedState = Arc<Mutex<HashMap<String, CrawlJob>>>;
+use crate::{error::{print_error, CrawlerError}, crawler::Crawler};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() {
     // Initialize logger
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     info!("Starting Web Crawler Daemon on 127.0.0.1:8080");
 
-    // Shared State
-    let shared_state: SharedState = Arc::new(Mutex::new(HashMap::new()));
+    // Channel to receive commands from client
+    let (command_sender, command_receiver) = mpsc::channel::<Command>(32);
 
-    // Channel to receive commands from client (e.g., start, stop, list)
-    let (cmd_sender, mut cmd_receiver) = mpsc::channel::<Command>(32);
-
-    // Launch command handler task
-    let state_clone = shared_state.clone();
+    // Setup the request reader loop
     tokio::spawn(async move {
-        loop {
-            if let Some(command) = cmd_receiver.recv().await {
-                info!("Command receiver channel received: {:?}", command);
-                handle_command(command, state_clone.clone()).await;
-            } else {
-                warn!("Command receiver channel received None");
-                continue;
-            }
+        if let Err(err) = request_reader_loop(command_sender).await {
+            print_error(err);
         }
     });
 
-    // Start TCP listener for IPC
+    // Setup the command receiver loop
+    let crawler = Crawler::new();
+    tokio::spawn(async move {
+        command_receiver_loop(crawler, command_receiver).await;
+    });
+
+    std::thread::park();
+
+    info!("Shutting down...");
+}
+
+async fn request_reader_loop(command_sender: Sender<Command>) -> Result<()> {
     let listener = TcpListener::bind("127.0.0.1:8080").await?;
     loop {
-        let (mut socket, addr) = listener.accept().await?;
-        let sender_clone = cmd_sender.clone();
-        tokio::spawn(async move {
-            let mut buf = [0; 1024];
-            match socket.read(&mut buf).await {
-                Ok(n) => {
-                    info!("Received TCP message from: {:?}", addr);
-                    // Deserialize command from received bytes using bincode
-                    if let Ok(command) = bincode::deserialize::<Command>(&buf[..n]) {
-                        info!("Sending to command channel: {:?}", command);
-                        sender_clone.send(command).await.unwrap(); // Send command to the command handler
-                    } else {
-                        warn!("Failed to deserialize command");
+        match request_accept(&listener).await {
+            Ok((socket, addr)) => {
+                let sender_clone = command_sender.clone();
+                tokio::spawn(async move {
+                    if let Err(err) = request_read(socket, addr, sender_clone).await {
+                        print_error(err);
                     }
-                }
-                Err(e) => {
-                    error!("Failed to read from socket: {:?}", e);
-                }
+                });
             }
-        });
-    }
-}
-
-async fn handle_command(command: Command, state: SharedState) {
-    match command {
-        Command::Start(url) => {
-            info!("Starting crawl for URL: {}", url);
-            let state_clone = state.clone();
-            // Launch a new task to crawl the website
-            tokio::spawn(async move {
-                if let Err(e) = crawl_website(url, state_clone).await {
-                    error!("Error during crawling: {:?}", e);
-                }
-            });
-        }
-        Command::Stop(url) => {
-            info!("Stopping crawl for URL: {}", url);
-            let mut state = state.lock().unwrap();
-            // Set the in_progress flag to false to signal the job should stop
-            if let Some(job) = state.get_mut(&url) {
-                job.in_progress = false;
-            }
-        }
-        Command::List => {
-            info!("Listing all crawled sites...");
-            let state = state.lock().unwrap();
-            // Iterate over all crawled URLs and print their details
-            for (url, job) in state.iter() {
-                println!("URL: {}, Children: {:?}", url, job.children);
-            }
+            Err(err) => print_error(err),
         }
     }
 }
 
-async fn crawl_website(url: String, state: SharedState) -> Result<(), Box<dyn std::error::Error>> {
-    let mut visited = HashSet::new(); // Track visited URLs to prevent re-crawling
-    let mut to_visit = vec![url.clone()]; // URLs to be visited, starting with the root URL
+async fn request_accept(listener: &TcpListener) -> Result<(TcpStream, SocketAddr)> {
+    let (socket, addr) = listener.accept().await?;
+    Ok((socket, addr))
+}
 
-    // Parse the base URL to construct relative URLs later
-    let base_url = Url::parse(&url)?;
+async fn request_read(mut socket: TcpStream, addr: SocketAddr, sender_clone: Sender<Command>) -> Result<()> {
+    let mut buffer = [0; 1024];
+    let bytes_number = socket.read(&mut buffer).await?;
+    info!("Received TCP message from: {:?}", addr);
 
-    while let Some(current_url) = to_visit.pop() {
-        if visited.contains(&current_url) {
-            continue; // Skip URLs that have already been visited
-        }
+    // Deserialize command from received bytes using bincode
+    let command = bincode::deserialize::<Command>(&buffer[..bytes_number])?;
 
-        info!("Crawling URL: {}", current_url);
-        visited.insert(current_url.clone()); // Mark the URL as visited
-
-        // Fetch page content using reqwest
-        let body = reqwest::get(&current_url).await?.text().await?;
-        let document = Html::parse_document(&body); // Parse the HTML document
-        let selector = Selector::parse("a").unwrap(); // Create a selector to find all anchor tags
-
-        let mut children = Vec::new();
-        for element in document.select(&selector) {
-            if let Some(link) = element.value().attr("href") {
-                // Resolve the link to an absolute URL
-                match base_url.join(link) {
-                    Ok(resolved_url) => {
-                        if is_same_domain(&url, resolved_url.as_str()) {
-                            let link_str = resolved_url.to_string();
-                            children.push(link_str.clone()); // Add link to children if it's in the same domain
-                            to_visit.push(link_str); // Add link to visit queue
-                        }
-                    }
-                    Err(e) => {
-                        error!("Failed to resolve URL {}: {:?}", link, e);
-                    }
-                }
-            }
-        }
-
-        // Update shared state with the current crawl job
-        let mut state = state.lock().unwrap();
-        state.insert(
-            current_url.clone(),
-            CrawlJob {
-                url: current_url,
-                in_progress: true,
-                children,
-            },
-        );
-    }
+    // Send command to the command handler
+    info!("Sending to command channel: {:?}", command);
+    sender_clone.send(command).await?;
 
     Ok(())
 }
 
-fn is_same_domain(root: &str, link: &str) -> bool {
-    // A simple domain check (for illustration purposes)
-    link.contains(root) // Check if the link contains the root URL
+async fn command_receiver_loop(crawler: Crawler, mut cmd_receiver: Receiver<Command>) {
+    loop {
+        match cmd_receiver.recv().await {
+            Some(command) => {
+                info!("Command receiver channel received: {:?}", command);
+
+                // Spawn a new task to handle the command
+                let crawler_clone = crawler.clone();
+                tokio::spawn(async move {
+                    if let Err(command_error) = crawler_clone.handle_command(command).await {
+                        print_error(command_error);
+                    }
+                });
+            }
+            None => {
+                CrawlerError::ReceivedNoCommandFromChannel.print();
+            }
+        }
+    }
 }

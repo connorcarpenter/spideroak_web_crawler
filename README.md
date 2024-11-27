@@ -1,6 +1,6 @@
 # spideroak_web_crawler
 
-### Technical Test Developer Platform Team
+### Assignment Instructions Given:
 
 The following test can be implemented in any programming language.
 You can take as much time as you need, but it's not expected that you spend more than 2 hours on it.
@@ -22,3 +22,32 @@ $ crawl -list                  # shows the current "site tree" for all crawled U
 
 Notes:
 - You can use external packages/libraries.
+
+### How to Run:
+- Clone this repository
+- Follow the instructions to run the service and client below
+
+#### How to Run the Service
+- Navigate into the repository directory
+- Navigate into the `service` directory
+- Start the service with the following command:
+  ```
+  cargo run
+  ```
+  This will start a local service on port 8080
+
+#### How to Run the Client
+- Navigate into the repository directory
+- Navigate into the `client` directory
+- Run the following command to start crawling a URL:
+  ```
+  cargo run -- start www.example.com
+  ```
+- Run the following command to stop crawling a URL:
+  ```
+  cargo run -- stop www.example.com
+  ```
+- Run the following command to list the current "site tree" for all crawled URLs:
+  ```
+  cargo run -- list
+  ```
